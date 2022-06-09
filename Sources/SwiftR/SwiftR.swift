@@ -386,8 +386,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
                 } else {
                     print("Unable to set user agent for WKWebView on OS X <= 10.10.")
                 }
-            } else {
-                webView.customUserAgent = userAgent
             }
         #endif
     }
@@ -417,18 +415,7 @@ open class SignalR: NSObject, SwiftRWebDelegate {
         }
     }
     
-    // MARK: - Web delegate methods
-    
-#if os(iOS)
-#else
-    public func webView(_ webView: WebView!, decidePolicyForNavigationAction actionInformation: [AnyHashable : Any]!, request: URLRequest!, frame: WebFrame!, decisionListener listener: WebPolicyDecisionListener!) {
-        
-        if shouldHandleRequest(request as URLRequest) {
-            listener.use()
-        }
-    }
-#endif
-    
+    // MARK: - Web delegate methods        
     class func stringify(_ obj: Any) -> String? {
         // Using an array to start with a valid top level type for NSJSONSerialization
         let arr = [obj]
