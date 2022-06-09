@@ -85,7 +85,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
     /// load Web resource from the provided url, which will be used as Origin HTTP header
     public var originUrlString: String?
 
-    var webView: SwiftRWebView!
     var wkWebView: WKWebView!
 
     var baseUrl: String
@@ -243,19 +242,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
                 + "</body></html>"
             
             wkWebView.loadHTMLString(html, baseURL: baseHTMLUrl)
-        } else {
-            let html = "<!doctype html><html><head></head><body>"
-                + "\(jqueryInclude)\(signalRInclude)\(jsInclude)"
-                + "</body></html>"
-            
-            webView = SwiftRWebView()
-            #if os(iOS)
-                webView.delegate = self
-                webView.loadHTMLString(html, baseURL: baseHTMLUrl)
-            #else
-                webView.policyDelegate = self
-                webView.mainFrame.loadHTMLString(html, baseURL: baseHTMLUrl)
-            #endif
         }
         
         if let ua = customUserAgent {
@@ -304,23 +290,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
         runJavaScript("swiftR.connection.stop()")
     }
     
-    func shouldHandleRequest(_ request: URLRequest) -> Bool {
-        if request.url!.absoluteString.hasPrefix("swiftr://") {
-            let id = (request.url!.absoluteString as NSString).substring(from: 9)
-            let msg = webView.stringByEvaluatingJavaScript(from: "readMessage('\(id)')")!
-            let data = msg.data(using: String.Encoding.utf8, allowLossyConversion: false)!
-            let json = try! JSONSerialization.jsonObject(with: data, options: [])
-            
-            if let m = json as? [String: Any] {
-                processMessage(m)
-            }
-
-            return false
-        }
-        
-        return true
-    }
-
     func processMessage(_ json: [String: Any]) {
         if let message = json["message"] as? String {
             switch message {
@@ -387,7 +356,7 @@ open class SignalR: NSObject, SwiftRWebDelegate {
     }
     
     func runJavaScript(_ script: String, callback: ((Any?) -> ())? = nil) {
-        guard wkWebView != nil || webView != nil else {
+        guard wkWebView != nil else {
             jsQueue.append((script, callback))
             return
         }
@@ -396,9 +365,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
             wkWebView.evaluateJavaScript(script, completionHandler: { (result, _)  in
                 callback?(result)
             })
-        } else {
-            let result = webView.stringByEvaluatingJavaScript(from: script)
-            callback?(result as AnyObject!)
         }
     }
     
@@ -454,9 +420,6 @@ open class SignalR: NSObject, SwiftRWebDelegate {
     // MARK: - Web delegate methods
     
 #if os(iOS)
-    open func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebViewNavigationType) -> Bool {
-        return shouldHandleRequest(request)
-    }
 #else
     public func webView(_ webView: WebView!, decidePolicyForNavigationAction actionInformation: [AnyHashable : Any]!, request: URLRequest!, frame: WebFrame!, decisionListener listener: WebPolicyDecisionListener!) {
         
@@ -578,7 +541,6 @@ public enum SignalRVersion : CustomStringConvertible {
 }
 
 #if os(iOS)
-    typealias SwiftRWebView = UIWebView
     public protocol SwiftRWebDelegate: WKNavigationDelegate, WKScriptMessageHandler, UIWebViewDelegate {}
 #else
     typealias SwiftRWebView = WebView
