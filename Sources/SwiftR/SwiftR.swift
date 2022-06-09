@@ -164,7 +164,7 @@ open class SignalR: NSObject, SwiftRWebDelegate {
         #elseif SWIFTR_FRAMEWORK
             let bundle = Bundle(identifier: "com.adamhartford.SwiftR")!
         #else
-            let bundle = Bundle.main
+            let bundle = Bundle.module
         #endif
         
         let jqueryURL = bundle.url(forResource: "jquery-2.1.3.min", withExtension: "js")!
